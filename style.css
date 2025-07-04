@@ -1,0 +1,77 @@
+:root {
+  --primary: #3b82f6;
+  --bg: #f0f4f8;
+  --text: #1f2937;
+  --card: #ffffff;
+  --shadow: rgba(0, 0, 0, 0.05);
+}
+
+* {
+  box-sizing: border-box;
+  font-family: 'Segoe UI', sans-serif;
+}
+
+body {
+  margin: 0;
+  background-color: var(--bg);
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+}
+
+.card {
+  background-color: var(--card);
+  padding: 2rem;
+  border-radius: 1.5rem;
+  box-shadow: 0 4px 20px var(--shadow);
+  width: 100%;
+  max-width: 450px;
+  text-align: center;
+}
+
+h1 {
+  margin-bottom: 1rem;
+  color: var(--primary);
+}
+
+input, select {
+  width: 100%;
+  padding: 0.8rem;
+  margin-bottom: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 0.75rem;
+  font-size: 1rem;
+}
+
+button {
+  background-color: var(--primary);
+  color: white;
+  border: none;
+  padding: 0.9rem 1.2rem;
+  border-radius: 1rem;
+  font-size: 1rem;
+  cursor: pointer;
+  width: 100%;
+  margin-bottom: 0.5rem;
+}
+
+button:hover {
+  background-color: #2563eb;
+}
+
+.question-box {
+  margin-top: 2rem;
+  font-size: 1.1rem;
+}
+
+.answer-input {
+  margin-top: 1rem;
+}
+
+.players {
+  margin-top: 1rem;
+  font-size: 0.9rem;
+  color: #666;
+}
