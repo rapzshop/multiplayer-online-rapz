@@ -1,0 +1,156 @@
+<!-- Tebak Kata Kocak - Multiplayer HTML (Client Side) with Room System -->
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tebak Kata Kocak - Multiplayer</title>
+  <style>
+    :root {
+      --primary: #3b82f6;
+      --bg: #f0f4f8;
+      --text: #1f2937;
+      --card: #ffffff;
+      --shadow: rgba(0, 0, 0, 0.05);
+    }
+
+    * {
+      box-sizing: border-box;
+      font-family: 'Segoe UI', sans-serif;
+    }
+
+    body {
+      margin: 0;
+      background-color: var(--bg);
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+    }
+
+    .card {
+      background-color: var(--card);
+      padding: 2rem;
+      border-radius: 1.5rem;
+      box-shadow: 0 4px 20px var(--shadow);
+      width: 100%;
+      max-width: 450px;
+      text-align: center;
+    }
+
+    h1 {
+      margin-bottom: 1rem;
+      color: var(--primary);
+    }
+
+    input, select {
+      width: 100%;
+      padding: 0.8rem;
+      margin-bottom: 1rem;
+      border: 1px solid #ccc;
+      border-radius: 0.75rem;
+      font-size: 1rem;
+    }
+
+    button {
+      background-color: var(--primary);
+      color: white;
+      border: none;
+      padding: 0.9rem 1.2rem;
+      border-radius: 1rem;
+      font-size: 1rem;
+      cursor: pointer;
+      width: 100%;
+      margin-bottom: 0.5rem;
+    }
+
+    button:hover {
+      background-color: #2563eb;
+    }
+
+    .question-box {
+      margin-top: 2rem;
+      font-size: 1.1rem;
+    }
+
+    .answer-input {
+      margin-top: 1rem;
+    }
+
+    .players {
+      margin-top: 1rem;
+      font-size: 0.9rem;
+      color: #666;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Tebak Kata Kocak</h1>
+    <div id="start-screen">
+      <input type="text" id="nickname" placeholder="Masukkan nama kamu" />
+      <input type="text" id="roomCode" placeholder="Kode Ruangan (4 huruf)..." />
+      <button onclick="createRoom()">Buat Ruangan Baru</button>
+      <button onclick="joinRoom()">Gabung ke Ruangan</button>
+    </div>
+
+    <div id="game-screen" style="display: none;">
+      <div class="players" id="players"></div>
+      <div class="question-box" id="question"></div>
+      <input type="text" class="answer-input" id="answer" placeholder="Jawabanmu..." />
+      <button onclick="submitAnswer()">Jawab!</button>
+      <p id="feedback"></p>
+    </div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io("https://tebak-kata-kocak-production.up.railway.app");
+    let nickname = "";
+    let roomCode = "";
+
+    function createRoom() {
+      nickname = document.getElementById("nickname").value.trim();
+      if (!nickname) return alert("Masukkan nama dulu dong 😅");
+      socket.emit("createRoom", { nickname });
+    }
+
+    function joinRoom() {
+      nickname = document.getElementById("nickname").value.trim();
+      roomCode = document.getElementById("roomCode").value.trim().toUpperCase();
+      if (!nickname || !roomCode) return alert("Isi nama dan kode ruangan");
+      socket.emit("joinRoom", { nickname, roomCode });
+    }
+
+    socket.on("joined", ({ players, room }) => {
+      roomCode = room;
+      document.getElementById("start-screen").style.display = "none";
+      document.getElementById("game-screen").style.display = "block";
+      updatePlayerList(players);
+    });
+
+    socket.on("playerList", updatePlayerList);
+
+    function updatePlayerList(players) {
+      document.getElementById("players").textContent = "👥 Pemain di ruang " + roomCode + ": " + players.join(", ");
+    }
+
+    socket.on("question", (question) => {
+      document.getElementById("question").textContent = question;
+      document.getElementById("answer").value = "";
+      document.getElementById("feedback").textContent = "";
+    });
+
+    socket.on("feedback", (msg) => {
+      document.getElementById("feedback").textContent = msg;
+    });
+
+    function submitAnswer() {
+      const ans = document.getElementById("answer").value.trim();
+      if (!ans) return;
+      socket.emit("answer", { room: roomCode, answer: ans });
+    }
+  </script>
+</body>
+</html>
