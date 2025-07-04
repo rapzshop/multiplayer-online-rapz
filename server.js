@@ -64,7 +64,9 @@ io.on('connection', (socket) => {
   });
 });
 
+// ...semua kode kamu di atas...
+
 const PORT = process.env.PORT || 8080;
 server.listen(PORT, () => {
-  console.log(`Server jalan di http://localhost:${PORT}`);
+  console.log(`✅ Server jalan di http://localhost:${PORT}`);
 });
