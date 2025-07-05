@@ -127,7 +127,8 @@ io.on('connection', (socket) => {
 
       roomData.questionIndex++;
       if (roomData.questionIndex >= roomData.questionList.length) {
-        io.to(room).emit('feedback', 'Soal habis! Permainan selesai.');
+        const winner = roomData.players.reduce((max, p) => p.score > max.score ? p : max, roomData.players[0]);
+        io.to(room).emit('showWinner', winner.nickname);
         return;
       }
 
@@ -164,7 +165,8 @@ io.on('connection', (socket) => {
       if (remaining.length === 0) {
         roomData.questionIndex++;
         if (roomData.questionIndex >= roomData.questionList.length) {
-          io.to(room).emit('feedback', 'Soal habis! Permainan selesai.');
+          const winner = roomData.players.reduce((max, p) => p.score > max.score ? p : max, roomData.players[0]);
+          io.to(room).emit('showWinner', winner.nickname);
           return;
         }
         roomData.players.forEach(p => p.hasSurrendered = false);
