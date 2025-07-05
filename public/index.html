@@ -70,7 +70,7 @@
     transition: color 0.3s ease;
   }
 
-  input {
+  input, select {
     width: 100%;
     padding: 0.8rem;
     margin-bottom: 1rem;
@@ -80,7 +80,7 @@
     transition: all 0.3s ease;
   }
 
-  input:focus {
+  input:focus, select:focus {
     outline: none;
     border-color: var(--primary);
     box-shadow: 0 0 10px rgba(59, 130, 246, 0.3);
@@ -161,6 +161,12 @@
       transform: scale(1);
     }
   }
+
+  .error {
+    color: red;
+    font-size: 0.85rem;
+    margin-bottom: 0.5rem;
+  }
 </style>
 </head>
 <body>
@@ -168,7 +174,16 @@
     <h1>Tebak Kata Kocak</h1>
     <div id="start-screen">
       <input type="text" id="nickname" placeholder="Masukkan nama kamu" />
-      <input type="text" id="roomCode" placeholder="Kode Ruangan (4 huruf)..." />
+      <input type="text" id="roomCode" placeholder="Kode Ruangan (4 huruf)..." maxlength="4" />
+      <select id="category">
+        <option value="">Pilih Kategori Soal</option>
+        <option value="benda">Benda di Sekitar</option>
+        <option value="hewan">Hewan</option>
+        <option value="makanan">Makanan/Minuman</option>
+        <option value="tempat">Tempat</option>
+        <option value="pekerjaan">Pekerjaan</option>
+      </select>
+      <div class="error" id="error-msg"></div>
       <button onclick="createRoom()" id="createBtn">Buat Ruangan Baru</button>
       <button onclick="joinRoom()" id="joinBtn">Gabung ke Ruangan</button>
     </div>
@@ -192,7 +207,38 @@
   </div>
 
   <script src="/socket.io/socket.io.js"></script>
+  <script>
+    function createRoom() {
+      const nickname = document.getElementById('nickname').value.trim();
+      const roomCode = document.getElementById('roomCode').value.trim().toUpperCase();
+      const category = document.getElementById('category').value;
+      const error = document.getElementById('error-msg');
+
+      if (!nickname || !roomCode || roomCode.length !== 4 || !category) {
+        error.textContent = "Isi nama, kode (4 huruf), dan pilih kategori!";
+        return;
+      }
+
+      error.textContent = '';
+      // Panggil socket.emit di script.js
+      window.createRoomHandler(nickname, roomCode, category);
+    }
+
+    function joinRoom() {
+      const nickname = document.getElementById('nickname').value.trim();
+      const roomCode = document.getElementById('roomCode').value.trim().toUpperCase();
+      const error = document.getElementById('error-msg');
+
+      if (!nickname || !roomCode || roomCode.length !== 4) {
+        error.textContent = "Isi nama dan kode ruangan (4 huruf)!";
+        return;
+      }
+
+      error.textContent = '';
+      // Panggil socket.emit di script.js
+      window.joinRoomHandler(nickname, roomCode);
+    }
+  </script>
   <script src="/script.js"></script>
 </body>
 </html>
-
