@@ -10,27 +10,54 @@ const io = new Server(server);
 
 app.use(express.static(__dirname + '/public'));
 
-const rooms = {}; // { [roomCode]: { players: [{ id, nickname, hasSurrendered }], question, answer, clueUsed, currentTurnIndex } }
-const currentQuestions = {}; // Simpan soal per room
-const currentTurn = {}; // Simpan id pemain yang sedang dapat giliran per room
+const rooms = {}; // { [roomCode]: { players: [...], questionIndex: 0, questionList: [...], currentTurnIndex, clueUsed } }
 
 function generateRoomCode() {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
   return Array.from({ length: 4 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
 }
 
-const bendaUmum = [
-  { q: 'Benda yang dipakai untuk menulis', a: 'pena', c: 'Ada di meja belajar' },
-  { q: 'Benda yang digunakan untuk makan', a: 'sendok', c: 'Biasa satu set sama garpu' },
-  { q: 'Benda yang menampilkan gambar', a: 'televisi', c: 'Biasanya ditonton' },
-  { q: 'Benda yang digunakan untuk melihat waktu', a: 'jam', c: 'Bisa nempel di dinding atau dipakai di tangan' },
-  { q: 'Benda yang digunakan saat hujan', a: 'payung', c: 'Melindungi dari basah' },
-  { q: 'Benda yang digunakan untuk menyapu lantai', a: 'sapu', c: 'Bulu-bulunya sering rontok' },
-  { q: 'Benda yang digunakan untuk memotong', a: 'gunting', c: 'Tajam, tapi bukan pisau' },
-];
+const categories = {
+  benda: [...Array(100)].map((_, i) => ({
+    q: `Benda kategori ke-${i + 1}`,
+    a: `benda${i + 1}`,
+    c: `Clue benda-${i + 1}`
+  })),
+  hewan: [...Array(100)].map((_, i) => ({
+    q: `Hewan kategori ke-${i + 1}`,
+    a: `hewan${i + 1}`,
+    c: `Clue hewan-${i + 1}`
+  })),
+  pekerjaan: [...Array(100)].map((_, i) => ({
+    q: `Pekerjaan kategori ke-${i + 1}`,
+    a: `pekerjaan${i + 1}`,
+    c: `Clue pekerjaan-${i + 1}`
+  })),
+  makanan: [...Array(100)].map((_, i) => ({
+    q: `Makanan/minuman kategori ke-${i + 1}`,
+    a: `makanan${i + 1}`,
+    c: `Clue makanan-${i + 1}`
+  })),
+  tempat: [...Array(100)].map((_, i) => ({
+    q: `Tempat kategori ke-${i + 1}`,
+    a: `tempat${i + 1}`,
+    c: `Clue tempat-${i + 1}`
+  })),
+};
 
-function generateRandomQuestion() {
-  return bendaUmum[Math.floor(Math.random() * bendaUmum.length)];
+function shuffle(arr) {
+  return arr.map(v => [v, Math.random()]).sort((a, b) => a[1] - b[1]).map(([v]) => v);
+}
+
+function generateShuffledQuestions() {
+  const combined = [
+    ...categories.benda,
+    ...categories.hewan,
+    ...categories.pekerjaan,
+    ...categories.makanan,
+    ...categories.tempat
+  ];
+  return shuffle(combined);
 }
 
 io.on('connection', (socket) => {
@@ -38,23 +65,34 @@ io.on('connection', (socket) => {
     if (!nickname) return socket.emit('feedback', 'Nama tidak boleh kosong!');
 
     const roomCode = generateRoomCode();
-    const { q: question, a: answer, c: clue } = generateRandomQuestion();
+    const questions = generateShuffledQuestions();
 
     rooms[roomCode] = {
       players: [{ id: socket.id, nickname, hasSurrendered: false }],
-      question,
-      answer,
-      clue,
+      questionList: questions,
+      questionIndex: 0,
       clueUsed: false,
-      currentTurnIndex: 0
+      currentTurnIndex: 0,
+      started: false,
+      hostId: socket.id,
     };
-    currentQuestions[roomCode] = question;
-    currentTurn[roomCode] = socket.id;
-    socket.join(roomCode);
 
-    io.to(roomCode).emit('joined', { players: rooms[roomCode].players.map(p => p.nickname), room: roomCode });
-    io.to(roomCode).emit('question', question);
-    io.to(roomCode).emit('turn', nickname);
+    socket.join(roomCode);
+    io.to(roomCode).emit('joined', { players: rooms[roomCode].players.map(p => p.nickname), room: roomCode, isHost: true });
+  });
+
+  socket.on('startGame', ({ room }) => {
+    const roomData = rooms[room];
+    if (!roomData || socket.id !== roomData.hostId) return;
+    if (roomData.players.length < 2) {
+      socket.emit('feedback', 'Minimal 2 pemain untuk mulai permainan!');
+      return;
+    }
+    roomData.started = true;
+    const question = roomData.questionList[roomData.questionIndex];
+    io.to(room).emit('question', question.q);
+    const currentPlayer = roomData.players[roomData.currentTurnIndex];
+    io.to(room).emit('turn', currentPlayer.nickname);
   });
 
   socket.on('joinRoom', ({ nickname, roomCode }) => {
@@ -66,50 +104,44 @@ io.on('connection', (socket) => {
     room.players.push({ id: socket.id, nickname, hasSurrendered: false });
     socket.join(roomCode);
 
-    io.to(roomCode).emit('joined', { players: room.players.map(p => p.nickname), room: roomCode });
-    socket.emit('question', room.question);
-    io.to(roomCode).emit('turn', getCurrentPlayerNickname(roomCode));
+    io.to(roomCode).emit('joined', { players: room.players.map(p => p.nickname), room: roomCode, isHost: room.hostId === socket.id });
   });
 
   socket.on('answer', ({ room, answer }) => {
     const roomData = rooms[room];
-    if (!roomData) return;
+    if (!roomData || !roomData.started) return;
 
     const currentPlayer = roomData.players[roomData.currentTurnIndex];
-    if (socket.id !== currentPlayer.id) {
-      socket.emit('feedback', '⏳ Bukan giliran kamu!');
-      return;
-    }
+    if (socket.id !== currentPlayer.id) return socket.emit('feedback', '⏳ Bukan giliran kamu!');
+    if (currentPlayer.hasSurrendered) return socket.emit('feedback', 'Kamu sudah nyerah.');
 
-    if (currentPlayer.hasSurrendered) {
-      socket.emit('feedback', 'Kamu sudah nyerah, tunggu soal berikutnya.');
-      return;
-    }
+    const currentQuestion = roomData.questionList[roomData.questionIndex];
+    const correct = answer.toLowerCase().includes(currentQuestion.a.toLowerCase());
 
-    const correct = answer.toLowerCase().includes(roomData.answer.toLowerCase());
     if (correct) {
-      io.to(room).emit('feedback', `✅ ${currentPlayer.nickname} menjawab dengan benar!`);
+      io.to(room).emit('feedback', `✅ ${currentPlayer.nickname} benar!`);
       io.to(room).emit('correctAnswer');
 
-      const { q, a, c } = generateRandomQuestion();
-      roomData.question = q;
-      roomData.answer = a;
-      roomData.clue = c;
-      roomData.clueUsed = false;
-      roomData.players.forEach(p => p.hasSurrendered = false);
-      currentQuestions[room] = q;
-      io.to(room).emit('question', q);
+      roomData.questionIndex++;
+      if (roomData.questionIndex >= roomData.questionList.length) {
+        io.to(room).emit('feedback', 'Soal habis! Permainan selesai.');
+        return;
+      }
 
+      roomData.players.forEach(p => p.hasSurrendered = false);
+      roomData.clueUsed = false;
       roomData.currentTurnIndex = (roomData.currentTurnIndex + 1) % roomData.players.length;
-      const nextPlayer = roomData.players[roomData.currentTurnIndex];
-      currentTurn[room] = nextPlayer.id;
-      io.to(room).emit('turn', nextPlayer.nickname);
+
+      const nextQ = roomData.questionList[roomData.questionIndex];
+      io.to(room).emit('transition');
+      setTimeout(() => {
+        io.to(room).emit('question', nextQ.q);
+        io.to(room).emit('turn', roomData.players[roomData.currentTurnIndex].nickname);
+      }, 500);
     } else {
       socket.emit('feedback', '❌ Salah, giliran berpindah!');
       roomData.currentTurnIndex = (roomData.currentTurnIndex + 1) % roomData.players.length;
-      const nextPlayer = roomData.players[roomData.currentTurnIndex];
-      currentTurn[room] = nextPlayer.id;
-      io.to(room).emit('turn', nextPlayer.nickname);
+      io.to(room).emit('turn', roomData.players[roomData.currentTurnIndex].nickname);
     }
   });
 
@@ -119,20 +151,33 @@ io.on('connection', (socket) => {
     const player = roomData.players.find(p => p.id === socket.id);
     if (player) {
       player.hasSurrendered = true;
-      socket.emit('feedback', `Jawaban: ${roomData.answer}`);
+      socket.emit('feedback', `Jawaban: ${roomData.questionList[roomData.questionIndex].a}`);
+
+      const remaining = roomData.players.filter(p => !p.hasSurrendered);
+      if (remaining.length === 0) {
+        roomData.questionIndex++;
+        if (roomData.questionIndex >= roomData.questionList.length) {
+          io.to(room).emit('feedback', 'Soal habis! Permainan selesai.');
+          return;
+        }
+        roomData.players.forEach(p => p.hasSurrendered = false);
+        roomData.clueUsed = false;
+        const q = roomData.questionList[roomData.questionIndex];
+        io.to(room).emit('transition');
+        setTimeout(() => {
+          io.to(room).emit('question', q.q);
+          io.to(room).emit('turn', roomData.players[roomData.currentTurnIndex].nickname);
+        }, 500);
+      }
     }
   });
 
   socket.on('getClue', ({ room }) => {
     const roomData = rooms[room];
     if (!roomData || roomData.clueUsed) return;
-    const clue = roomData.clue || 'Clue tidak tersedia.';
+    const clue = roomData.questionList[roomData.questionIndex].c;
     io.to(room).emit('clue', clue);
     roomData.clueUsed = true;
-  });
-
-  socket.on('typing', ({ room, nickname }) => {
-    socket.to(room).emit('playerTyping', nickname);
   });
 
   socket.on('disconnect', () => {
@@ -140,20 +185,12 @@ io.on('connection', (socket) => {
       room.players = room.players.filter(p => p.id !== socket.id);
       if (room.players.length === 0) {
         delete rooms[code];
-        delete currentQuestions[code];
-        delete currentTurn[code];
       } else {
         io.to(code).emit('playerList', room.players.map(p => p.nickname));
       }
     }
   });
 });
-
-function getCurrentPlayerNickname(roomCode) {
-  const room = rooms[roomCode];
-  if (!room || room.players.length === 0) return '';
-  return room.players[room.currentTurnIndex]?.nickname || '';
-}
 
 app.get('*', (req, res) => {
   res.sendFile(__dirname + '/public/index.html');
