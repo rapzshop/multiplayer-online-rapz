@@ -17,31 +17,26 @@ function generateRoomCode() {
 }
 
 const categories = {
-  benda: [...Array(100)].map((_, i) => ({
-    q: `Benda kategori ke-${i + 1}`,
+  benda: [...Array(30)].map((_, i) => ({
+    q: `Benda apa yang sering dipakai sehari-hari dan bernama benda-${i + 1}?`,
     a: `benda${i + 1}`,
-    c: `Clue benda-${i + 1}`
+    c: `Digunakan dalam aktivitas harian.`
   })),
-  hewan: [...Array(100)].map((_, i) => ({
-    q: `Hewan kategori ke-${i + 1}`,
+  hewan: [...Array(30)].map((_, i) => ({
+    q: `Hewan yang umum ditemukan dan dikenal sebagai hewan-${i + 1}?`,
     a: `hewan${i + 1}`,
-    c: `Clue hewan-${i + 1}`
+    c: `Biasa hidup di darat atau air.`
   })),
-  pekerjaan: [...Array(100)].map((_, i) => ({
-    q: `Pekerjaan kategori ke-${i + 1}`,
+  tumbuhan: [...Array(30)].map((_, i) => ({
+    q: `Tumbuhan yang bisa ditemukan di lingkungan dan bernama tumbuhan-${i + 1}?`,
+    a: `tumbuhan${i + 1}`,
+    c: `Mengandung klorofil.`
+  })),
+  pekerjaan: [...Array(30)].map((_, i) => ({
+    q: `Seseorang dengan profesi pekerjaan-${i + 1} bekerja di bidang apa?`,
     a: `pekerjaan${i + 1}`,
-    c: `Clue pekerjaan-${i + 1}`
-  })),
-  makanan: [...Array(100)].map((_, i) => ({
-    q: `Makanan/minuman kategori ke-${i + 1}`,
-    a: `makanan${i + 1}`,
-    c: `Clue makanan-${i + 1}`
-  })),
-  tempat: [...Array(100)].map((_, i) => ({
-    q: `Tempat kategori ke-${i + 1}`,
-    a: `tempat${i + 1}`,
-    c: `Clue tempat-${i + 1}`
-  })),
+    c: `Membutuhkan keterampilan tertentu.`
+  }))
 };
 
 function shuffle(arr) {
@@ -49,19 +44,8 @@ function shuffle(arr) {
 }
 
 function generateQuestionsByCategory(category) {
-  if (!categories[category]) return generateShuffledQuestions();
-  return shuffle(categories[category]);
-}
-
-function generateShuffledQuestions() {
-  const combined = [
-    ...categories.benda,
-    ...categories.hewan,
-    ...categories.pekerjaan,
-    ...categories.makanan,
-    ...categories.tempat
-  ];
-  return shuffle(combined);
+  if (!categories[category]) return [];
+  return shuffle(categories[category]).slice(0, 20);
 }
 
 io.on('connection', (socket) => {
@@ -72,7 +56,7 @@ io.on('connection', (socket) => {
     const questions = generateQuestionsByCategory(category);
 
     rooms[roomCode] = {
-      players: [{ id: socket.id, nickname, hasSurrendered: false }],
+      players: [{ id: socket.id, nickname, score: 0, hasSurrendered: false }],
       questionList: questions,
       questionIndex: 0,
       clueUsed: false,
@@ -90,6 +74,21 @@ io.on('connection', (socket) => {
     });
   });
 
+  socket.on('joinRoom', ({ nickname, roomCode }) => {
+    if (!nickname || !roomCode) return socket.emit('feedback', 'Nama dan kode ruangan wajib diisi!');
+    const room = rooms[roomCode];
+    if (!room) return socket.emit('feedback', 'Ruangan tidak ditemukan!');
+
+    room.players.push({ id: socket.id, nickname, score: 0, hasSurrendered: false });
+    socket.join(roomCode);
+
+    io.to(roomCode).emit('joined', {
+      players: room.players.map(p => p.nickname),
+      room: roomCode,
+      isHost: room.hostId === socket.id
+    });
+  });
+
   socket.on('startGame', ({ room }) => {
     const roomData = rooms[room];
     if (!roomData || socket.id !== roomData.hostId) return;
@@ -104,21 +103,6 @@ io.on('connection', (socket) => {
     io.to(room).emit('turn', currentPlayer.nickname);
   });
 
-  socket.on('joinRoom', ({ nickname, roomCode }) => {
-    if (!nickname || !roomCode) return socket.emit('feedback', 'Nama dan kode ruangan wajib diisi!');
-    const room = rooms[roomCode];
-    if (!room) return socket.emit('feedback', 'Ruangan tidak ditemukan!');
-
-    room.players.push({ id: socket.id, nickname, hasSurrendered: false });
-    socket.join(roomCode);
-
-    io.to(roomCode).emit('joined', {
-      players: room.players.map(p => p.nickname),
-      room: roomCode,
-      isHost: room.hostId === socket.id
-    });
-  });
-
   socket.on('answer', ({ room, answer }) => {
     const roomData = rooms[room];
     if (!roomData || !roomData.started) return;
@@ -131,8 +115,15 @@ io.on('connection', (socket) => {
     const correct = answer.toLowerCase().includes(currentQuestion.a.toLowerCase());
 
     if (correct) {
+      currentPlayer.score += 1;
       io.to(room).emit('feedback', `✅ ${currentPlayer.nickname} benar!`);
-      io.to(room).emit('correctAnswer');
+      io.to(room).emit('updateScore', {
+        scores: roomData.players.map(p => ({ nickname: p.nickname, score: p.score }))
+      });
+      if (currentPlayer.score >= 20) {
+        io.to(room).emit('showWinner', currentPlayer.nickname);
+        return;
+      }
 
       roomData.questionIndex++;
       if (roomData.questionIndex >= roomData.questionList.length) {
@@ -151,7 +142,11 @@ io.on('connection', (socket) => {
         io.to(room).emit('turn', roomData.players[roomData.currentTurnIndex].nickname);
       }, 500);
     } else {
+      currentPlayer.score += 0.5;
       socket.emit('feedback', '❌ Salah, giliran berpindah!');
+      io.to(room).emit('updateScore', {
+        scores: roomData.players.map(p => ({ nickname: p.nickname, score: p.score }))
+      });
       roomData.currentTurnIndex = (roomData.currentTurnIndex + 1) % roomData.players.length;
       io.to(room).emit('turn', roomData.players[roomData.currentTurnIndex].nickname);
     }
@@ -212,5 +207,3 @@ const PORT = process.env.PORT || 8080;
 server.listen(PORT, () => {
   console.log(`✅ Server jalan di http://localhost:${PORT}`);
 });
-
-
