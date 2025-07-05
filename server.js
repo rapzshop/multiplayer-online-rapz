@@ -59,6 +59,19 @@ io.on('connection', (socket) => {
     const correct = answer.toLowerCase().includes('kocak');
     io.to(room).emit('feedback', correct ? '✅ Jawaban kamu kocak dan benar!' : '❌ Belum kocak, coba lagi!');
   });
+  
+  const clues = {
+  "Kucing berkumis": "Hewan peliharaan, suka ikan",
+  "Gunung api": "Tempat tinggi dan panas",
+  // Tambah sesuai soal
+};
+
+socket.on("getClue", ({ room }) => {
+  const question = currentQuestions[room]; // kamu harus simpan soal aktif per room
+  const clue = clues[question] || "Clue tidak tersedia";
+  io.to(room).emit("clue", clue);
+});
+
 
   socket.on('disconnect', () => {
     for (const [code, room] of Object.entries(rooms)) {
