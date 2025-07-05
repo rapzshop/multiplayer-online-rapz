@@ -5,11 +5,13 @@ let roomCode = "";
 let clueUsed = false;
 let hasSurrendered = false;
 let isHost = false;
+let selectedCategory = "";
 
 // Fungsi dipanggil dari HTML
 window.createRoomHandler = function (nick, room, category) {
   nickname = nick;
   roomCode = room;
+  selectedCategory = category;
   isHost = true;
   socket.emit("createRoom", { nickname, roomCode, category });
 };
@@ -52,7 +54,7 @@ function startGame() {
 socket.on("joined", ({ players, room }) => {
   roomCode = room;
   document.getElementById("start-screen").style.display = "none";
-  document.getElementById("game-screen").style.display = "block";
+  document.getElementById("lobby-screen").style.display = "block";
   updatePlayerList(players);
 
   if (isHost) {
@@ -70,6 +72,9 @@ function updatePlayerList(players) {
 }
 
 socket.on("question", (question) => {
+  document.getElementById("lobby-screen").style.display = "none";
+  document.getElementById("game-screen").style.display = "block";
+
   document.getElementById("question").textContent = question;
   document.getElementById("answer").value = "";
   document.getElementById("feedback").textContent = "";
