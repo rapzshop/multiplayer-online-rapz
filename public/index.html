@@ -5,95 +5,163 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Tebak Kata Kocak - Multiplayer</title>
   <style>
-    :root {
-      --primary: #3b82f6;
-      --bg: #f0f4f8;
-      --text: #1f2937;
-      --card: #ffffff;
-      --shadow: rgba(0, 0, 0, 0.05);
-      --success: #10b981;
-    }
+  :root {
+    --primary: #3b82f6;
+    --bg: #f0f4f8;
+    --text: #1f2937;
+    --card: #ffffff;
+    --shadow: rgba(0, 0, 0, 0.1);
+  }
 
-    * {
-      box-sizing: border-box;
-      font-family: 'Segoe UI', sans-serif;
-    }
+  * {
+    box-sizing: border-box;
+    font-family: 'Segoe UI', sans-serif;
+  }
 
-    body {
-      margin: 0;
-      background-color: var(--bg);
-      color: var(--text);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
-    }
+  body {
+    margin: 0;
+    background-color: var(--bg);
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    transition: background-color 0.5s ease;
+  }
 
-    .card {
-      background-color: var(--card);
-      padding: 2rem;
-      border-radius: 1.5rem;
-      box-shadow: 0 4px 20px var(--shadow);
-      width: 100%;
-      max-width: 450px;
-      text-align: center;
-      position: relative;
-    }
+  .card {
+    background-color: var(--card);
+    padding: 2rem;
+    border-radius: 1.5rem;
+    width: 100%;
+    max-width: 450px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+    z-index: 1;
+    animation: fadeIn 0.8s ease-in-out;
+  }
 
-    h1 {
-      margin-bottom: 1rem;
-      color: var(--primary);
-    }
+  .card::before {
+    content: '';
+    position: absolute;
+    top: -4px;
+    left: -4px;
+    right: -4px;
+    bottom: -4px;
+    z-index: -1;
+    background: linear-gradient(135deg, #3b82f6, #9333ea, #f59e0b, #10b981);
+    background-size: 600% 600%;
+    animation: glowingBorder 10s ease infinite;
+    border-radius: 1.8rem;
+    filter: blur(8px);
+    opacity: 0.7;
+  }
 
-    input {
-      width: 100%;
-      padding: 0.8rem;
-      margin-bottom: 1rem;
-      border: 1px solid #ccc;
-      border-radius: 0.75rem;
-      font-size: 1rem;
-    }
+  @keyframes glowingBorder {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
 
-    button {
-      background-color: var(--primary);
-      color: white;
-      border: none;
-      padding: 0.9rem 1.2rem;
-      border-radius: 1rem;
-      font-size: 1rem;
-      cursor: pointer;
-      width: 100%;
-      margin-bottom: 0.5rem;
-    }
+  h1 {
+    margin-bottom: 1rem;
+    color: var(--primary);
+    transition: color 0.3s ease;
+  }
 
-    button:hover {
-      background-color: #2563eb;
-    }
+  input {
+    width: 100%;
+    padding: 0.8rem;
+    margin-bottom: 1rem;
+    border: 1px solid #ccc;
+    border-radius: 0.75rem;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+  }
 
-    .question-box {
-      margin-top: 2rem;
-      font-size: 1.1rem;
-    }
+  input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 10px rgba(59, 130, 246, 0.3);
+  }
 
-    .answer-input {
-      margin-top: 1rem;
-    }
+  button {
+    background-color: var(--primary);
+    color: white;
+    border: none;
+    padding: 0.9rem 1.2rem;
+    border-radius: 1rem;
+    font-size: 1rem;
+    cursor: pointer;
+    width: 100%;
+    margin-bottom: 0.5rem;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 0 12px rgba(59, 130, 246, 0.5);
+    transition: transform 0.2s ease, box-shadow 0.3s ease;
+  }
 
-    .players {
-      margin-top: 1rem;
-      font-size: 0.9rem;
-      color: #666;
-    }
+  button::after {
+    content: "";
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(59,130,246,0.3) 0%, transparent 70%);
+    animation: pulse 2s infinite;
+    opacity: 0.6;
+    z-index: 0;
+  }
 
-    #feedback.correct {
-      animation: flashSuccess 0.8s ease-in-out;
-    }
+  button:hover {
+    background-color: #2563eb;
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.6);
+    transform: scale(1.03);
+  }
 
-    @keyframes flashSuccess {
-      0% { background-color: var(--success); color: white; }
-      100% { background-color: transparent; color: var(--text); }
+  @keyframes pulse {
+    0% {
+      transform: scale(1);
+      opacity: 0.6;
     }
-  </style>
+    100% {
+      transform: scale(1.4);
+      opacity: 0;
+    }
+  }
+
+  .question-box {
+    margin-top: 2rem;
+    font-size: 1.1rem;
+  }
+
+  .answer-input {
+    margin-top: 1rem;
+  }
+
+  .players {
+    margin-top: 1rem;
+    font-size: 0.9rem;
+    color: #666;
+  }
+
+  #game-screen {
+    transition: opacity 0.4s ease, transform 0.4s ease;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: scale(0.9);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+</style>
 </head>
 <body>
   <div class="card">
