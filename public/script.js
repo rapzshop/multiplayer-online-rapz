@@ -5,18 +5,18 @@ let roomCode = "";
 let clueUsed = false;
 let hasSurrendered = false;
 
-function createRoom() {
-  nickname = document.getElementById("nickname").value.trim();
-  if (!nickname) return alert("Masukkan nama dulu dong 😅");
-  socket.emit("createRoom", { nickname });
-}
+// Fungsi dipanggil dari HTML (index.html)
+window.createRoomHandler = function (nick, room, category) {
+  nickname = nick;
+  roomCode = room;
+  socket.emit("createRoom", { nickname, roomCode, category });
+};
 
-function joinRoom() {
-  nickname = document.getElementById("nickname").value.trim();
-  roomCode = document.getElementById("roomCode").value.trim().toUpperCase();
-  if (!nickname || !roomCode) return alert("Isi nama dan kode ruangan");
+window.joinRoomHandler = function (nick, room) {
+  nickname = nick;
+  roomCode = room;
   socket.emit("joinRoom", { nickname, roomCode });
-}
+};
 
 function submitAnswer() {
   const ans = document.getElementById("answer").value.trim();
@@ -64,6 +64,8 @@ socket.on("question", (question) => {
   document.getElementById("surrender-btn").disabled = false;
   document.getElementById("answer").disabled = false;
   document.getElementById("answerBtn").disabled = false;
+  document.getElementById("answer").disabled = false;
+  document.getElementById("answerBtn").disabled = false;
   clueUsed = false;
   hasSurrendered = false;
 });
@@ -101,14 +103,12 @@ document.getElementById("answer").addEventListener("input", () => {
 // --- DOM READY ---
 
 document.addEventListener("DOMContentLoaded", () => {
-  document.getElementById("createBtn").addEventListener("click", createRoom);
-  document.getElementById("joinBtn").addEventListener("click", joinRoom);
   document.getElementById("answerBtn").addEventListener("click", submitAnswer);
   document.getElementById("clue-btn").addEventListener("click", requestClue);
   document.getElementById("surrender-btn").addEventListener("click", surrender);
 });
 
-// --- Animasi ---
+// --- Animasi Jawaban Benar ---
 
 function animateCorrect() {
   const feedback = document.getElementById("feedback");
@@ -121,4 +121,3 @@ function animateCorrect() {
     feedback.style.fontWeight = "";
   }, 600);
 }
-
