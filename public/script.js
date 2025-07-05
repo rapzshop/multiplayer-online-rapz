@@ -7,8 +7,9 @@ let hasSurrendered = false;
 let isHost = false;
 let selectedCategory = "";
 
-// Fungsi dipanggil dari HTML
-window.createRoomHandler = function () {
+// --- HANDLER UTAMA ---
+
+function createRoomHandler() {
   const nick = document.getElementById("nickname").value.trim();
   const room = document.getElementById("roomCode").value.trim().toUpperCase();
   const category = document.getElementById("category").value;
@@ -24,9 +25,9 @@ window.createRoomHandler = function () {
   isHost = true;
 
   socket.emit("createRoom", { nickname, roomCode, category });
-};
+}
 
-window.joinRoomHandler = function () {
+function joinRoomHandler() {
   const nick = document.getElementById("nickname").value.trim();
   const room = document.getElementById("roomCode").value.trim().toUpperCase();
 
@@ -40,7 +41,9 @@ window.joinRoomHandler = function () {
   isHost = false;
 
   socket.emit("joinRoom", { nickname, roomCode });
-};
+}
+
+// --- GAME INTERAKSI ---
 
 function submitAnswer() {
   const ans = document.getElementById("answer").value.trim();
@@ -136,20 +139,25 @@ socket.on("gameStarted", () => {
   document.getElementById("startGameBtn").style.display = "none";
 });
 
-// --- INPUT TYPING ---
+// --- EVENT INPUT ---
+
 document.getElementById("answer").addEventListener("input", () => {
   socket.emit("typing", { room: roomCode, nickname });
 });
 
 // --- DOM READY ---
+
 document.addEventListener("DOMContentLoaded", () => {
+  document.getElementById("createBtn").addEventListener("click", createRoomHandler);
+  document.getElementById("joinBtn").addEventListener("click", joinRoomHandler);
   document.getElementById("answerBtn").addEventListener("click", submitAnswer);
   document.getElementById("clue-btn").addEventListener("click", requestClue);
   document.getElementById("surrender-btn").addEventListener("click", surrender);
   document.getElementById("startGameBtn").addEventListener("click", startGame);
 });
 
-// --- Animasi Jawaban Benar ---
+// --- ANIMASI FEEDBACK ---
+
 function animateCorrect() {
   const feedback = document.getElementById("feedback");
   feedback.style.color = "green";
@@ -161,4 +169,5 @@ function animateCorrect() {
     feedback.style.fontWeight = "";
   }, 600);
 }
+
 
