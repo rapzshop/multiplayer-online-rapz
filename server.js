@@ -73,6 +73,10 @@ function nextTurn(room) {
     const correct = answer.toLowerCase().includes('kocak');
     io.to(room).emit('feedback', correct ? '✅ Jawaban kamu kocak dan benar!' : '❌ Belum kocak, coba lagi!');
   });
+
+  socket.on("typing", ({ room, nickname }) => {
+  socket.to(room).emit("playerTyping", nickname);
+});
   
   const clues = {
   "Kucing berkumis": "Hewan peliharaan, suka ikan",
