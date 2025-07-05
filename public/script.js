@@ -70,3 +70,14 @@ socket.on("question", (question) => {
   document.getElementById("clue-btn").disabled = false;
   clueUsed = false;
 });
+
+socket.on("playerTyping", (nickname) => {
+  document.getElementById("player-status").textContent = `${nickname} sedang menjawab...`;
+  setTimeout(() => {
+    document.getElementById("player-status").textContent = "";
+  }, 3000);
+});
+
+document.getElementById("answer").addEventListener("input", () => {
+  socket.emit("typing", { room: roomCode, nickname });
+});
