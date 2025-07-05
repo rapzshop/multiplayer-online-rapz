@@ -28,7 +28,7 @@ window.createRoomHandler = function () {
 
 window.joinRoomHandler = function () {
   const nick = document.getElementById("nickname").value.trim();
-  const room = document.getElementById("room").value.trim().toUpperCase();
+  const room = document.getElementById("roomCode").value.trim().toUpperCase();
 
   if (!nick || !room || room.length !== 4) {
     alert("Lengkapi nickname dan kode ruangan (4 huruf)!");
