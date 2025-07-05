@@ -17,6 +17,21 @@ function joinRoom() {
   socket.emit("joinRoom", { nickname, roomCode });
 }
 
+function submitAnswer() {
+  const ans = document.getElementById("answer").value.trim();
+  if (!ans) return;
+  socket.emit("answer", { room: roomCode, answer: ans });
+}
+
+function requestClue() {
+  if (clueUsed) return alert("Clue cuma bisa dipakai sekali per soal!");
+  socket.emit("getClue", { room: roomCode });
+  clueUsed = true;
+  document.getElementById("clue-btn").disabled = true;
+}
+
+// --- SOCKET EVENTS ---
+
 socket.on("joined", ({ players, room }) => {
   roomCode = room;
   document.getElementById("start-screen").style.display = "none";
@@ -48,19 +63,6 @@ socket.on("turn", (playerName) => {
   document.getElementById("turn-indicator").textContent = `🎯 Giliran: ${playerName}`;
 });
 
-function submitAnswer() {
-  const ans = document.getElementById("answer").value.trim();
-  if (!ans) return;
-  socket.emit("answer", { room: roomCode, answer: ans });
-}
-
-function requestClue() {
-  if (clueUsed) return alert("Clue cuma bisa dipakai sekali per soal!");
-  socket.emit("getClue", { room: roomCode });
-  clueUsed = true;
-  document.getElementById("clue-btn").disabled = true;
-}
-
 socket.on("clue", (clue) => {
   document.getElementById("clue-text").textContent = "🔍 Clue: " + clue;
 });
@@ -72,12 +74,18 @@ socket.on("playerTyping", (nickname) => {
   }, 3000);
 });
 
-document.getElementById("answer").addEventListener("input", () => {
-  socket.emit("typing", { room: roomCode, nickname });
-});
-
-});
+// --- INPUT TYPING ---
 
 document.getElementById("answer").addEventListener("input", () => {
   socket.emit("typing", { room: roomCode, nickname });
 });
+
+// --- ADD EVENT LISTENER SAAT DOM SIAP ---
+
+document.addEventListener("DOMContentLoaded", () => {
+  document.getElementById("createBtn").addEventListener("click", createRoom);
+  document.getElementById("joinBtn").addEventListener("click", joinRoom);
+  document.getElementById("answerBtn").addEventListener("click", submitAnswer);
+  document.getElementById("clue-btn").addEventListener("click", requestClue);
+});
+
