@@ -8,18 +8,37 @@ let isHost = false;
 let selectedCategory = "";
 
 // Fungsi dipanggil dari HTML
-window.createRoomHandler = function (nick, room, category) {
+window.createRoomHandler = function () {
+  const nick = document.getElementById("nickname").value.trim();
+  const room = document.getElementById("room").value.trim().toUpperCase();
+  const category = document.getElementById("category").value;
+
+  if (!nick || !room || room.length !== 4 || !category) {
+    alert("Lengkapi nickname, kode ruangan (4 huruf), dan kategori!");
+    return;
+  }
+
   nickname = nick;
   roomCode = room;
   selectedCategory = category;
   isHost = true;
+
   socket.emit("createRoom", { nickname, roomCode, category });
 };
 
-window.joinRoomHandler = function (nick, room) {
+window.joinRoomHandler = function () {
+  const nick = document.getElementById("nickname").value.trim();
+  const room = document.getElementById("room").value.trim().toUpperCase();
+
+  if (!nick || !room || room.length !== 4) {
+    alert("Lengkapi nickname dan kode ruangan (4 huruf)!");
+    return;
+  }
+
   nickname = nick;
   roomCode = room;
   isHost = false;
+
   socket.emit("joinRoom", { nickname, roomCode });
 };
 
@@ -30,38 +49,35 @@ function submitAnswer() {
 }
 
 function requestClue() {
-  if (clueUsed) return alert("Clue cuma bisa dipakai sekali per soal!");
-  socket.emit("getClue", { room: roomCode });
+  if (clueUsed) return alert("Clue hanya bisa dipakai sekali!");
   clueUsed = true;
   document.getElementById("clue-btn").disabled = true;
+  socket.emit("getClue", { room: roomCode });
 }
 
 function surrender() {
   hasSurrendered = true;
-  socket.emit("surrender", { room: roomCode });
   document.getElementById("surrender-btn").disabled = true;
   document.getElementById("answer").disabled = true;
   document.getElementById("answerBtn").disabled = true;
+  socket.emit("surrender", { room: roomCode });
 }
 
 function startGame() {
   socket.emit("startGame", { room: roomCode });
-  document.getElementById("startGameBtn").style.display = "none";
+  document.getElementById("startGameBtn").disabled = true;
 }
 
 // --- SOCKET EVENTS ---
 
 socket.on("joined", ({ players, room }) => {
   roomCode = room;
+
   document.getElementById("start-screen").style.display = "none";
   document.getElementById("lobby-screen").style.display = "block";
   updatePlayerList(players);
 
-  if (isHost) {
-    document.getElementById("startGameBtn").style.display = "block";
-  } else {
-    document.getElementById("startGameBtn").style.display = "none";
-  }
+  document.getElementById("startGameBtn").style.display = isHost ? "block" : "none";
 });
 
 socket.on("playerList", updatePlayerList);
@@ -83,6 +99,7 @@ socket.on("question", (question) => {
   document.getElementById("surrender-btn").disabled = false;
   document.getElementById("answer").disabled = false;
   document.getElementById("answerBtn").disabled = false;
+
   clueUsed = false;
   hasSurrendered = false;
 });
@@ -120,13 +137,11 @@ socket.on("gameStarted", () => {
 });
 
 // --- INPUT TYPING ---
-
 document.getElementById("answer").addEventListener("input", () => {
   socket.emit("typing", { room: roomCode, nickname });
 });
 
 // --- DOM READY ---
-
 document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("answerBtn").addEventListener("click", submitAnswer);
   document.getElementById("clue-btn").addEventListener("click", requestClue);
@@ -135,7 +150,6 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 // --- Animasi Jawaban Benar ---
-
 function animateCorrect() {
   const feedback = document.getElementById("feedback");
   feedback.style.color = "green";
@@ -147,3 +161,4 @@ function animateCorrect() {
     feedback.style.fontWeight = "";
   }, 600);
 }
+
