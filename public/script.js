@@ -2,6 +2,7 @@ const socket = io(); // Gunakan io("https://namadomainmu") jika HTML tidak di-se
 
 let nickname = "";
 let roomCode = "";
+let clueUsed = false;
 
 function createRoom() {
   nickname = document.getElementById("nickname").value.trim();
@@ -34,6 +35,9 @@ socket.on("question", (question) => {
   document.getElementById("question").textContent = question;
   document.getElementById("answer").value = "";
   document.getElementById("feedback").textContent = "";
+  document.getElementById("clue-text").textContent = "";
+  document.getElementById("clue-btn").disabled = false;
+  clueUsed = false;
 });
 
 socket.on("feedback", (msg) => {
@@ -49,7 +53,6 @@ function submitAnswer() {
   if (!ans) return;
   socket.emit("answer", { room: roomCode, answer: ans });
 }
-let clueUsed = false;
 
 function requestClue() {
   if (clueUsed) return alert("Clue cuma bisa dipakai sekali per soal!");
@@ -62,20 +65,17 @@ socket.on("clue", (clue) => {
   document.getElementById("clue-text").textContent = "🔍 Clue: " + clue;
 });
 
-socket.on("question", (question) => {
-  document.getElementById("question").textContent = question;
-  document.getElementById("answer").value = "";
-  document.getElementById("feedback").textContent = "";
-  document.getElementById("clue-text").textContent = "";
-  document.getElementById("clue-btn").disabled = false;
-  clueUsed = false;
-});
-
 socket.on("playerTyping", (nickname) => {
   document.getElementById("player-status").textContent = `${nickname} sedang menjawab...`;
   setTimeout(() => {
     document.getElementById("player-status").textContent = "";
   }, 3000);
+});
+
+document.getElementById("answer").addEventListener("input", () => {
+  socket.emit("typing", { room: roomCode, nickname });
+});
+
 });
 
 document.getElementById("answer").addEventListener("input", () => {
