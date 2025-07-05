@@ -46,6 +46,20 @@ io.on('connection', (socket) => {
     socket.emit('question', rooms[roomCode].question);
   });
 
+  let currentTurnIndex = 0;
+
+function sendTurn(room) {
+  const players = rooms[room].players; // kamu harus simpan player list per room
+  const currentPlayer = players[currentTurnIndex];
+  io.to(room).emit("turn", currentPlayer.nickname);
+}
+
+function nextTurn(room) {
+  const players = rooms[room].players;
+  currentTurnIndex = (currentTurnIndex + 1) % players.length;
+  sendTurn(room);
+}
+
   socket.on('joinRoom', ({ nickname, roomCode }) => {
     const room = rooms[roomCode];
     if (!room) return socket.emit('feedback', 'Ruangan tidak ditemukan!');
