@@ -164,18 +164,22 @@ io.on('connection', (socket) => {
     });
   });
 
-  socket.on('joinRoom', ({ nickname, roomCode }) => {
+    socket.on('joinRoom', ({ nickname, roomCode }) => {
     if (!nickname || !roomCode) return socket.emit('feedback', 'Nama dan kode ruangan wajib diisi!');
+
     const room = rooms[roomCode];
     if (!room) return socket.emit('feedback', 'Ruangan tidak ditemukan!');
+    if (room.started) return socket.emit('feedback', 'Permainan sudah dimulai!');
 
+    // Tambahkan pemain ke dalam ruangan
     room.players.push({ id: socket.id, nickname, score: 0, hasSurrendered: false });
+
     socket.join(roomCode);
 
     io.to(roomCode).emit('joined', {
       players: room.players.map(p => p.nickname),
       room: roomCode,
-      isHost: room.hostId === socket.id
+      isHost: socket.id === room.hostId
     });
   });
 
@@ -279,17 +283,34 @@ io.on('connection', (socket) => {
     roomData.clueUsed = true;
   });
 
-  socket.on('disconnect', () => {
-    for (const [code, room] of Object.entries(rooms)) {
-      room.players = room.players.filter(p => p.id !== socket.id);
-      if (room.players.length === 0) {
-        delete rooms[code];
-      } else {
-        io.to(code).emit('playerList', room.players.map(p => p.nickname));
+    socket.on('disconnect', () => {
+    for (const roomCode in rooms) {
+      const room = rooms[roomCode];
+      const index = room.players.findIndex(p => p.id === socket.id);
+      if (index !== -1) {
+        const wasHost = room.players[index].id === room.hostId;
+        room.players.splice(index, 1);
+
+        // Jika tidak ada pemain tersisa, hapus ruangan
+        if (room.players.length === 0) {
+          delete rooms[roomCode];
+        } else {
+          // Jika host keluar, alihkan host ke pemain pertama
+          if (wasHost) {
+            room.hostId = room.players[0].id;
+          }
+
+          io.to(roomCode).emit('joined', {
+            players: room.players.map(p => p.nickname),
+            room: roomCode,
+            isHost: false
+          });
+        }
+
+        break;
       }
     }
   });
-});
 
 app.get('*', (req, res) => {
   res.sendFile(__dirname + '/public/index.html');
