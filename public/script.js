@@ -4,23 +4,26 @@ let nickname = "";
 let roomCode = "";
 let clueUsed = false;
 let hasSurrendered = false;
+let isHost = false;
 
-// Fungsi dipanggil dari HTML (index.html)
+// Fungsi dipanggil dari HTML
 window.createRoomHandler = function (nick, room, category) {
   nickname = nick;
   roomCode = room;
+  isHost = true;
   socket.emit("createRoom", { nickname, roomCode, category });
 };
 
 window.joinRoomHandler = function (nick, room) {
   nickname = nick;
   roomCode = room;
+  isHost = false;
   socket.emit("joinRoom", { nickname, roomCode });
 };
 
 function submitAnswer() {
   const ans = document.getElementById("answer").value.trim();
-  if (!ans) return;
+  if (!ans || hasSurrendered) return;
   socket.emit("answer", { room: roomCode, answer: ans });
 }
 
@@ -39,6 +42,11 @@ function surrender() {
   document.getElementById("answerBtn").disabled = true;
 }
 
+function startGame() {
+  socket.emit("startGame", { room: roomCode });
+  document.getElementById("startGameBtn").style.display = "none";
+}
+
 // --- SOCKET EVENTS ---
 
 socket.on("joined", ({ players, room }) => {
@@ -46,6 +54,12 @@ socket.on("joined", ({ players, room }) => {
   document.getElementById("start-screen").style.display = "none";
   document.getElementById("game-screen").style.display = "block";
   updatePlayerList(players);
+
+  if (isHost) {
+    document.getElementById("startGameBtn").style.display = "block";
+  } else {
+    document.getElementById("startGameBtn").style.display = "none";
+  }
 });
 
 socket.on("playerList", updatePlayerList);
@@ -62,8 +76,6 @@ socket.on("question", (question) => {
   document.getElementById("clue-text").textContent = "";
   document.getElementById("clue-btn").disabled = false;
   document.getElementById("surrender-btn").disabled = false;
-  document.getElementById("answer").disabled = false;
-  document.getElementById("answerBtn").disabled = false;
   document.getElementById("answer").disabled = false;
   document.getElementById("answerBtn").disabled = false;
   clueUsed = false;
@@ -94,6 +106,14 @@ socket.on("playerTyping", (nickname) => {
   }, 3000);
 });
 
+socket.on("notEnoughPlayers", () => {
+  alert("Minimal 2 pemain diperlukan untuk memulai permainan!");
+});
+
+socket.on("gameStarted", () => {
+  document.getElementById("startGameBtn").style.display = "none";
+});
+
 // --- INPUT TYPING ---
 
 document.getElementById("answer").addEventListener("input", () => {
@@ -106,6 +126,7 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("answerBtn").addEventListener("click", submitAnswer);
   document.getElementById("clue-btn").addEventListener("click", requestClue);
   document.getElementById("surrender-btn").addEventListener("click", surrender);
+  document.getElementById("startGameBtn").addEventListener("click", startGame);
 });
 
 // --- Animasi Jawaban Benar ---
