@@ -135,6 +135,12 @@
   .question-box {
     margin-top: 2rem;
     font-size: 1.1rem;
+    font-weight: bold;
+    color: #1f2937;
+    background-color: #e0e7ff;
+    padding: 1rem;
+    border-radius: 1rem;
+    box-shadow: 0 0 10px var(--shadow);
   }
 
   .answer-input {
@@ -167,7 +173,12 @@
     font-size: 0.85rem;
     margin-bottom: 0.5rem;
   }
-</style>
+
+  #startGameBtn {
+    margin-top: 1rem;
+    background-color: #10b981;
+  }
+  </style>
 </head>
 <body>
   <div class="card">
@@ -203,6 +214,7 @@
       <button onclick="surrender()" id="surrender-btn" style="background-color:#f87171;">😵 Nyerah</button>
 
       <p id="feedback"></p>
+      <button id="startGameBtn" onclick="startGame()" style="display:none;">🚀 Mulai Permainan</button>
     </div>
   </div>
 
@@ -220,7 +232,6 @@
       }
 
       error.textContent = '';
-      // Panggil socket.emit di script.js
       window.createRoomHandler(nickname, roomCode, category);
     }
 
@@ -235,10 +246,10 @@
       }
 
       error.textContent = '';
-      // Panggil socket.emit di script.js
       window.joinRoomHandler(nickname, roomCode);
     }
   </script>
   <script src="/script.js"></script>
 </body>
 </html>
+
