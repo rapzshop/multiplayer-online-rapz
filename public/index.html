@@ -11,6 +11,7 @@
       --text: #1f2937;
       --card: #ffffff;
       --shadow: rgba(0, 0, 0, 0.05);
+      --success: #10b981;
     }
 
     * {
@@ -36,6 +37,7 @@
       width: 100%;
       max-width: 450px;
       text-align: center;
+      position: relative;
     }
 
     h1 {
@@ -82,6 +84,15 @@
       font-size: 0.9rem;
       color: #666;
     }
+
+    #feedback.correct {
+      animation: flashSuccess 0.8s ease-in-out;
+    }
+
+    @keyframes flashSuccess {
+      0% { background-color: var(--success); color: white; }
+      100% { background-color: transparent; color: var(--text); }
+    }
   </style>
 </head>
 <body>
@@ -90,19 +101,24 @@
     <div id="start-screen">
       <input type="text" id="nickname" placeholder="Masukkan nama kamu" />
       <input type="text" id="roomCode" placeholder="Kode Ruangan (4 huruf)..." />
-      <button onclick="createRoom()">Buat Ruangan Baru</button>
-      <button onclick="joinRoom()">Gabung ke Ruangan</button>
+      <button onclick="createRoom()" id="createBtn">Buat Ruangan Baru</button>
+      <button onclick="joinRoom()" id="joinBtn">Gabung ke Ruangan</button>
     </div>
 
     <div id="game-screen" style="display: none;">
       <div class="players" id="players"></div>
       <p id="turn-indicator" style="font-weight: bold; color: #2563eb;"></p>
       <div class="question-box" id="question"></div>
+
       <button id="clue-btn" onclick="requestClue()">💡 Lihat Clue</button>
-<p id="clue-text"></p>
+      <p id="clue-text"></p>
+
       <input type="text" class="answer-input" id="answer" placeholder="Jawabanmu..." />
       <div id="player-status"></div>
-      <button onclick="submitAnswer()">Jawab!</button>
+
+      <button onclick="submitAnswer()" id="answerBtn">Jawab!</button>
+      <button onclick="surrender()" id="surrender-btn" style="background-color:#f87171;">😵 Nyerah</button>
+
       <p id="feedback"></p>
     </div>
   </div>
