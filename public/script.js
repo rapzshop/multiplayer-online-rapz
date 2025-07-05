@@ -1,8 +1,9 @@
-const socket = io(); // Gunakan io("https://namadomainmu") jika HTML tidak di-serve dari server yang sama
+const socket = io();
 
 let nickname = "";
 let roomCode = "";
 let clueUsed = false;
+let hasSurrendered = false;
 
 function createRoom() {
   nickname = document.getElementById("nickname").value.trim();
@@ -30,6 +31,14 @@ function requestClue() {
   document.getElementById("clue-btn").disabled = true;
 }
 
+function surrender() {
+  hasSurrendered = true;
+  socket.emit("surrender", { room: roomCode });
+  document.getElementById("surrender-btn").disabled = true;
+  document.getElementById("answer").disabled = true;
+  document.getElementById("answerBtn").disabled = true;
+}
+
 // --- SOCKET EVENTS ---
 
 socket.on("joined", ({ players, room }) => {
@@ -52,11 +61,16 @@ socket.on("question", (question) => {
   document.getElementById("feedback").textContent = "";
   document.getElementById("clue-text").textContent = "";
   document.getElementById("clue-btn").disabled = false;
+  document.getElementById("surrender-btn").disabled = false;
+  document.getElementById("answer").disabled = false;
+  document.getElementById("answerBtn").disabled = false;
   clueUsed = false;
+  hasSurrendered = false;
 });
 
 socket.on("feedback", (msg) => {
   document.getElementById("feedback").textContent = msg;
+  if (msg.includes("benar")) animateCorrect();
 });
 
 socket.on("turn", (playerName) => {
@@ -65,6 +79,10 @@ socket.on("turn", (playerName) => {
 
 socket.on("clue", (clue) => {
   document.getElementById("clue-text").textContent = "🔍 Clue: " + clue;
+});
+
+socket.on("showAnswer", (correctAnswer) => {
+  document.getElementById("clue-text").textContent = "🔓 Jawabannya: " + correctAnswer;
 });
 
 socket.on("playerTyping", (nickname) => {
@@ -80,12 +98,27 @@ document.getElementById("answer").addEventListener("input", () => {
   socket.emit("typing", { room: roomCode, nickname });
 });
 
-// --- ADD EVENT LISTENER SAAT DOM SIAP ---
+// --- DOM READY ---
 
 document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("createBtn").addEventListener("click", createRoom);
   document.getElementById("joinBtn").addEventListener("click", joinRoom);
   document.getElementById("answerBtn").addEventListener("click", submitAnswer);
   document.getElementById("clue-btn").addEventListener("click", requestClue);
+  document.getElementById("surrender-btn").addEventListener("click", surrender);
 });
+
+// --- Animasi ---
+
+function animateCorrect() {
+  const feedback = document.getElementById("feedback");
+  feedback.style.color = "green";
+  feedback.style.fontWeight = "bold";
+  feedback.style.transform = "scale(1.2)";
+  setTimeout(() => {
+    feedback.style.transform = "scale(1)";
+    feedback.style.color = "";
+    feedback.style.fontWeight = "";
+  }, 600);
+}
 
