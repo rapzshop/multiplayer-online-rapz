@@ -1,4 +1,3 @@
-// server.js
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
@@ -10,7 +9,7 @@ const io = new Server(server);
 
 app.use(express.static(__dirname + '/public'));
 
-const rooms = {}; // { [roomCode]: { players: [...], questionIndex: 0, questionList: [...], currentTurnIndex, clueUsed } }
+const rooms = {};
 
 function generateRoomCode() {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
@@ -49,6 +48,11 @@ function shuffle(arr) {
   return arr.map(v => [v, Math.random()]).sort((a, b) => a[1] - b[1]).map(([v]) => v);
 }
 
+function generateQuestionsByCategory(category) {
+  if (!categories[category]) return generateShuffledQuestions();
+  return shuffle(categories[category]);
+}
+
 function generateShuffledQuestions() {
   const combined = [
     ...categories.benda,
@@ -61,11 +65,11 @@ function generateShuffledQuestions() {
 }
 
 io.on('connection', (socket) => {
-  socket.on('createRoom', ({ nickname }) => {
-    if (!nickname) return socket.emit('feedback', 'Nama tidak boleh kosong!');
+  socket.on('createRoom', ({ nickname, category }) => {
+    if (!nickname || !category) return socket.emit('feedback', 'Nama dan kategori wajib diisi!');
 
     const roomCode = generateRoomCode();
-    const questions = generateShuffledQuestions();
+    const questions = generateQuestionsByCategory(category);
 
     rooms[roomCode] = {
       players: [{ id: socket.id, nickname, hasSurrendered: false }],
@@ -75,10 +79,15 @@ io.on('connection', (socket) => {
       currentTurnIndex: 0,
       started: false,
       hostId: socket.id,
+      category
     };
 
     socket.join(roomCode);
-    io.to(roomCode).emit('joined', { players: rooms[roomCode].players.map(p => p.nickname), room: roomCode, isHost: true });
+    io.to(roomCode).emit('joined', {
+      players: rooms[roomCode].players.map(p => p.nickname),
+      room: roomCode,
+      isHost: true
+    });
   });
 
   socket.on('startGame', ({ room }) => {
@@ -97,14 +106,17 @@ io.on('connection', (socket) => {
 
   socket.on('joinRoom', ({ nickname, roomCode }) => {
     if (!nickname || !roomCode) return socket.emit('feedback', 'Nama dan kode ruangan wajib diisi!');
-
     const room = rooms[roomCode];
     if (!room) return socket.emit('feedback', 'Ruangan tidak ditemukan!');
 
     room.players.push({ id: socket.id, nickname, hasSurrendered: false });
     socket.join(roomCode);
 
-    io.to(roomCode).emit('joined', { players: room.players.map(p => p.nickname), room: roomCode, isHost: room.hostId === socket.id });
+    io.to(roomCode).emit('joined', {
+      players: room.players.map(p => p.nickname),
+      room: roomCode,
+      isHost: room.hostId === socket.id
+    });
   });
 
   socket.on('answer', ({ room, answer }) => {
