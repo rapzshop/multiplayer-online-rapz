@@ -10,7 +10,7 @@ let selectedCategory = "";
 // Fungsi dipanggil dari HTML
 window.createRoomHandler = function () {
   const nick = document.getElementById("nickname").value.trim();
-  const room = document.getElementById("room").value.trim().toUpperCase();
+  const room = document.getElementById("roomCode").value.trim().toUpperCase();
   const category = document.getElementById("category").value;
 
   if (!nick || !room || room.length !== 4 || !category) {
