@@ -8,6 +8,7 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
+// ⬅️ Serve semua file dari folder 'public'
 app.use(express.static(__dirname + '/public'));
 
 app.get('*', (req, res) => {
@@ -73,4 +74,9 @@ io.on('connection', (socket) => {
 const PORT = process.env.PORT || 8080;
 server.listen(PORT, () => {
   console.log(`✅ Server jalan di http://localhost:${PORT}`);
+});
+
+// ⬅️ Taruh ini PALING AKHIR
+app.get('*', (req, res) => {
+  res.sendFile(__dirname + '/public/index.html');
 });
