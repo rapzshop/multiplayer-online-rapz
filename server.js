@@ -69,10 +69,28 @@ function nextTurn(room) {
     socket.emit('question', room.question);
   });
 
-  socket.on('answer', ({ room, answer }) => {
-    const correct = answer.toLowerCase().includes('kocak');
-    io.to(room).emit('feedback', correct ? '✅ Jawaban kamu kocak dan benar!' : '❌ Belum kocak, coba lagi!');
-  });
+ socket.on('answer', ({ room, answer }) => {
+  // Cek apakah pemain ini yang gilirannya
+  if (socket.id !== currentTurn[room]) {
+    socket.emit('feedback', '⏳ Bukan giliran kamu!');
+    return;
+  }
+
+  const correct = answer.toLowerCase().includes('kocak');
+
+  if (correct) {
+    io.to(room).emit('feedback', `✅ ${players[socket.id]} menjawab dengan benar!`);
+    
+    // Ganti ke pemain berikutnya
+    currentTurn[room] = getNextPlayerInRoom(room);
+    io.to(room).emit('turn', players[currentTurn[room]]);
+    
+    // Kirim pertanyaan baru (opsional)
+    sendNewQuestion(room);
+  } else {
+    socket.emit('feedback', '❌ Salah, coba lagi.');
+  }
+});
 
   socket.on("typing", ({ room, nickname }) => {
   socket.to(room).emit("playerTyping", nickname);
