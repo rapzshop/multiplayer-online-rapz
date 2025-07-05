@@ -45,3 +45,24 @@ function submitAnswer() {
   if (!ans) return;
   socket.emit("answer", { room: roomCode, answer: ans });
 }
+let clueUsed = false;
+
+function requestClue() {
+  if (clueUsed) return alert("Clue cuma bisa dipakai sekali per soal!");
+  socket.emit("getClue", { room: roomCode });
+  clueUsed = true;
+  document.getElementById("clue-btn").disabled = true;
+}
+
+socket.on("clue", (clue) => {
+  document.getElementById("clue-text").textContent = "🔍 Clue: " + clue;
+});
+
+socket.on("question", (question) => {
+  document.getElementById("question").textContent = question;
+  document.getElementById("answer").value = "";
+  document.getElementById("feedback").textContent = "";
+  document.getElementById("clue-text").textContent = "";
+  document.getElementById("clue-btn").disabled = false;
+  clueUsed = false;
+});
