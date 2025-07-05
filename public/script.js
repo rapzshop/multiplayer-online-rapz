@@ -40,6 +40,10 @@ socket.on("feedback", (msg) => {
   document.getElementById("feedback").textContent = msg;
 });
 
+socket.on("turn", (playerName) => {
+  document.getElementById("turn-indicator").textContent = `🎯 Giliran: ${playerName}`;
+});
+
 function submitAnswer() {
   const ans = document.getElementById("answer").value.trim();
   if (!ans) return;
